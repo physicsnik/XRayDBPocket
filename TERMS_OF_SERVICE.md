@@ -21,4 +21,4 @@ In no event shall XRayDB Pocket or its developers be liable for any direct, indi
 
 ## 6. Contact Us
 If you have any questions about these Terms of Service, please contact us at:
-- **Email**: xinhua.xie@psi.ch
+- **Email**: physicsnik@gmail.com
