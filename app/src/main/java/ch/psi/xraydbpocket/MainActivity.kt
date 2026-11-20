@@ -50,10 +50,16 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,6 +96,7 @@ class Vm(private val dao: XrayDao) : ViewModel() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MobileAds.initialize(this) {}
         val dao = XrayDb.get(this).dao()
         setContent {
             val vm: Vm = viewModel(factory = object : ViewModelProvider.Factory {
@@ -99,6 +106,22 @@ class MainActivity : ComponentActivity() {
             App(vm)
         }
     }
+}
+
+@Composable
+fun AdBannerBar() {
+    AndroidView(
+        modifier = Modifier.fillMaxWidth(),
+        factory = { context ->
+            AdView(context).apply {
+                val displayMetrics = context.resources.displayMetrics
+                val adWidth = (displayMetrics.widthPixels / displayMetrics.density).toInt()
+                setAdSize(AdSize(adWidth, 50))
+                adUnitId = "ca-app-pub-3940256099942544/6300978111"
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
 }
 
 enum class Page { TABLE, ENERGY, XRF, ATTEN, ABOUT }
@@ -112,19 +135,21 @@ fun App(vm: Vm) {
         selected = null
     }
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF006A6A), secondary = Color(0xFF4A6363))) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(selected?.let { "${it.symbol} · ${it.name}" } ?: "XRayDB Pocket") },
-                    navigationIcon = {
-                        if (selected != null) {
-                            IconButton(onClick = { selected = null }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        Column(Modifier.fillMaxSize()) {
+            AdBannerBar()
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(selected?.let { "${it.symbol} · ${it.name}" } ?: "XRayDB Pocket") },
+                        navigationIcon = {
+                            if (selected != null) {
+                                IconButton(onClick = { selected = null }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
                             }
                         }
-                    }
-                )
-            },
+                    )
+                },
             bottomBar = {
                 if (selected == null) {
                     NavigationBar {
@@ -177,6 +202,7 @@ fun App(vm: Vm) {
             }
         }
     }
+}
 }
 
 enum class ElementState { GAS, LIQUID, SOLID }
