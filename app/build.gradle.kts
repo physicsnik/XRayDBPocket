@@ -5,15 +5,34 @@ plugins {
     id("com.google.devtools.ksp")
 }
 android {
-    namespace = "ch.psi.xraydbpocket"
+    namespace = "com.xx.xraydbpocket"
     compileSdk = 35
-    defaultConfig { applicationId = "ch.psi.xraydbpocket"; minSdk = 26; targetSdk = 35; versionCode = 1; versionName = "1.0" }
+    defaultConfig { applicationId = "com.xx.xraydbpocket"; minSdk = 26; targetSdk = 35; versionCode = 1; versionName = "1.0" }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../release-key.jks")
+            storePassword = "xraydb123"
+            keyAlias = "xraydb-alias"
+            keyPassword = "xraydb123"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true; buildConfig = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
