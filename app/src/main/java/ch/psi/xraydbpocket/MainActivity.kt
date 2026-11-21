@@ -247,6 +247,14 @@ fun getElementState(z: Int): ElementState {
 @Composable
 fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
     val es by vm.elements.collectAsState()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.2f
+
+    val (gasColor, liquidColor, solidColor) = if (isDark) {
+        Triple(Color(0xFF142E3D), Color(0xFF163C2A), Color(0xFF1E222D))
+    } else {
+        Triple(Color(0xFFB2EBF2), Color(0xFFC8E6C9), Color(0xFFEFF4F4))
+    }
+
     Column(Modifier.padding(horizontal = 12.dp, vertical = 2.dp)) {
         Row(
             Modifier.fillMaxWidth(),
@@ -255,13 +263,13 @@ fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
         ) {
             Text("Select an element", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).background(Color(0xFFE0F7FA)))
+                Box(Modifier.size(12.dp).background(gasColor, MaterialTheme.shapes.extraSmall))
                 Text("Gas", style = MaterialTheme.typography.labelSmall)
-                Box(Modifier.size(10.dp).background(Color(0xFFE8F5E9)))
+                Box(Modifier.size(12.dp).background(liquidColor, MaterialTheme.shapes.extraSmall))
                 Text("Liquid", style = MaterialTheme.typography.labelSmall)
             }
         }
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(6),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -270,9 +278,9 @@ fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
             items(es) { e ->
                 val state = getElementState(e.z)
                 val cardColor = when (state) {
-                    ElementState.GAS -> Color(0xFFE0F7FA)
-                    ElementState.LIQUID -> Color(0xFFE8F5E9)
-                    ElementState.SOLID -> MaterialTheme.colorScheme.surfaceVariant
+                    ElementState.GAS -> gasColor
+                    ElementState.LIQUID -> liquidColor
+                    ElementState.SOLID -> solidColor
                 }
                 Card(
                     modifier = Modifier.aspectRatio(1f).clickable { onPick(e) },
