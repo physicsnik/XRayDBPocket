@@ -1,4 +1,4 @@
-package ch.psi.xraydbpocket
+package com.xx.xraydbpocket
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -33,11 +33,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +55,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.viewinterop.AndroidView
@@ -124,6 +127,22 @@ fun AdBannerBar() {
     )
 }
 
+val LightColors = lightColorScheme(
+    primary = Color(0xFF006A6A),
+    secondary = Color(0xFF4A6363),
+    surfaceVariant = Color(0xFFE0F2F1)
+)
+
+val DarkHutchColors = darkColorScheme(
+    primary = Color(0xFF00FFFF),
+    secondary = Color(0xFF80CBC4),
+    background = Color(0xFF000000),
+    surface = Color(0xFF0D0E1A),
+    surfaceVariant = Color(0xFF161B22),
+    onBackground = Color(0xFFE0E0E0),
+    onSurface = Color(0xFFE0E0E0)
+)
+
 enum class Page { TABLE, ENERGY, XRF, ATTEN, ABOUT }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,10 +150,11 @@ enum class Page { TABLE, ENERGY, XRF, ATTEN, ABOUT }
 fun App(vm: Vm) {
     var page by remember { mutableStateOf(Page.TABLE) }
     var selected by remember { mutableStateOf<Element?>(null) }
+    var isDarkMode by remember { mutableStateOf(true) }
     BackHandler(enabled = selected != null) {
         selected = null
     }
-    MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF006A6A), secondary = Color(0xFF4A6363))) {
+    MaterialTheme(colorScheme = if (isDarkMode) DarkHutchColors else LightColors) {
         Column(Modifier.fillMaxSize()) {
             AdBannerBar()
             Scaffold(
@@ -146,6 +166,15 @@ fun App(vm: Vm) {
                                 IconButton(onClick = { selected = null }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                                 }
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { isDarkMode = !isDarkMode }) {
+                                Icon(
+                                    imageVector = if (isDarkMode) Icons.Default.WbSunny else Icons.Default.DarkMode,
+                                    contentDescription = "Toggle Hutch Dark Mode",
+                                    tint = if (isDarkMode) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     )
@@ -668,13 +697,21 @@ fun AttenuationCalculator(vm: Vm) {
         val parsedComponents = parseFormula(formulaStr, allElements)
         val compDensity = compoundDensityStr.toDoubleOrNull() ?: 2.0
         if (!parsedComponents.isNullOrEmpty()) {
-            val totalMolarMass = parsedComponents.sumOf { it.element.mass * it.count }
-            val weightedMuRho = parsedComponents.sumOf { comp ->
-                val weightFraction = (comp.element.mass * comp.count) / totalMolarMass
-                val elemMu = elementMuRho(comp.element.z, energyKeV)
-                weightFraction * elemMu
+            val totalMolarMass = parsedComponents.sumOf {
+                val m = if (it.element.mass > 0) it.element.mass else (it.element.z * 2.1)
+                m * it.count
             }
-            Triple(formatLabel(formulaStr), compDensity, weightedMuRho)
+            if (totalMolarMass > 0) {
+                val weightedMuRho = parsedComponents.sumOf { comp ->
+                    val m = if (comp.element.mass > 0) comp.element.mass else (comp.element.z * 2.1)
+                    val weightFraction = (m * comp.count) / totalMolarMass
+                    val elemMu = elementMuRho(comp.element.z, energyKeV)
+                    weightFraction * elemMu
+                }
+                Triple(formatLabel(formulaStr), compDensity, weightedMuRho)
+            } else {
+                Triple("Invalid Formula", compDensity, 100.0)
+            }
         } else {
             Triple("Invalid Formula", compDensity, 100.0)
         }

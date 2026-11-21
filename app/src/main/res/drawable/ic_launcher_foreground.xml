@@ -4,57 +4,62 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+  <group android:scaleX="0.64705884"
+      android:scaleY="0.64705884"
+      android:translateX="19.058823"
+      android:translateY="19.058823">
 
-    <!-- Outermost Glow / Accent Ring -->
-    <path
-        android:strokeColor="#1F2833"
-        android:strokeWidth="1"
-        android:pathData="M54,54 m-50,0 a50,50 0,1,1 100,0 a50,50 0,1,1 -100,0" />
+      <!-- Outermost Glow / Accent Ring -->
+      <path
+          android:strokeColor="#1F2833"
+          android:strokeWidth="1"
+          android:pathData="M54,54 m-50,0 a50,50 0,1,1 100,0 a50,50 0,1,1 -100,0" />
 
-    <!-- Innermost Circle (n=1, smaller) -->
-    <path
-        android:strokeColor="#52607A"
-        android:strokeWidth="1.8"
-        android:pathData="M54,54 m-6,0 a6,6 0,1,1 12,0 a6,6 0,1,1 -12,0" />
+      <!-- Innermost Circle (n=1, smaller) -->
+      <path
+          android:strokeColor="#52607A"
+          android:strokeWidth="1.8"
+          android:pathData="M54,54 m-6,0 a6,6 0,1,1 12,0 a6,6 0,1,1 -12,0" />
 
-    <!-- Middle Circle (n=2, smaller) -->
-    <path
-        android:strokeColor="#52607A"
-        android:strokeWidth="1.8"
-        android:pathData="M54,54 m-18,0 a18,18 0,1,1 36,0 a18,18 0,1,1 -36,0" />
+      <!-- Middle Circle (n=2, smaller) -->
+      <path
+          android:strokeColor="#52607A"
+          android:strokeWidth="1.8"
+          android:pathData="M54,54 m-18,0 a18,18 0,1,1 36,0 a18,18 0,1,1 -36,0" />
 
-    <!-- Outermost Circle (n=3, smaller) -->
-    <path
-        android:strokeColor="#52607A"
-        android:strokeWidth="1.8"
-        android:pathData="M54,54 m-38,0 a38,38 0,1,1 76,0 a38,38 0,1,1 -76,0" />
+      <!-- Outermost Circle (n=3, smaller) -->
+      <path
+          android:strokeColor="#52607A"
+          android:strokeWidth="1.8"
+          android:pathData="M54,54 m-38,0 a38,38 0,1,1 76,0 a38,38 0,1,1 -76,0" />
 
-    <!-- Center Nucleus Dot with Cyan Halo -->
-    <path
-        android:fillColor="#1F2833"
-        android:pathData="M54,54 m-3,0 a3,3 0,1,1 6,0 a3,3 0,1,1 -6,0" />
-    <path
-        android:fillColor="#66FCF1"
-        android:pathData="M54,54 m-1,0 a1,1 0,1,1 2,0 a1,1 0,1,1 -2,0" />
+      <!-- Center Nucleus Dot with Cyan Halo -->
+      <path
+          android:fillColor="#1F2833"
+          android:pathData="M54,54 m-3,0 a3,3 0,1,1 6,0 a3,3 0,1,1 -6,0" />
+      <path
+          android:fillColor="#66FCF1"
+          android:pathData="M54,54 m-1,0 a1,1 0,1,1 2,0 a1,1 0,1,1 -2,0" />
 
-    <!-- Red Transition Arrow: from outer ring to inner ring (terminated on inner ring at ~50,50) -->
-    <path
-        android:strokeColor="#E63946"
-        android:strokeWidth="1.2"
-        android:strokeLineCap="round"
-        android:pathData="M26,26 L50,50" />
-    <path
-        android:fillColor="#E63946"
-        android:pathData="M50,50 L41,45 L45,41 Z" />
+      <!-- Red Transition Arrow: from outer ring to inner ring (terminated on inner ring at ~50,50) -->
+      <path
+          android:strokeColor="#E63946"
+          android:strokeWidth="1.2"
+          android:strokeLineCap="round"
+          android:pathData="M26,26 L50,50" />
+      <path
+          android:fillColor="#E63946"
+          android:pathData="M50,50 L41,45 L45,41 Z" />
 
-    <!-- Emitted Photon Wave: starts with 3 full oscillations, then a short straight line, ending with triangle arrowhead shifted right -->
-    <path
-        android:strokeColor="#B5179E"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M60,54 Q62,47 64,54 T68,54 T72,54 T76,54 T80,54 T84,54 L91,54" />
-    <path
-        android:fillColor="#B5179E"
-        android:pathData="M91,54 L85,51 L85,57 Z" />
+      <!-- Emitted Photon Wave: starts with 3 full oscillations, then a short straight line, ending with triangle arrowhead shifted right -->
+      <path
+          android:strokeColor="#B5179E"
+          android:strokeWidth="1.5"
+          android:strokeLineCap="round"
+          android:pathData="M60,54 Q62,47 64,54 T68,54 T72,54 T76,54 T80,54 T84,54 L91,54" />
+      <path
+          android:fillColor="#B5179E"
+          android:pathData="M91,54 L85,51 L85,57 Z" />
 
+  </group>
 </vector>

@@ -1,4 +1,4 @@
-package ch.psi.xraydbpocket
+package com.xx.xraydbpocket
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

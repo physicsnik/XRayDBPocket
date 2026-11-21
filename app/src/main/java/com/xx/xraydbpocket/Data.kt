@@ -1,4 +1,4 @@
-package ch.psi.xraydbpocket
+package com.xx.xraydbpocket
 
 import android.content.Context
 import androidx.room.*
