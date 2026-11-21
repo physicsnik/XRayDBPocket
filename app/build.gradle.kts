@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.xx.xraydbpocket"
     compileSdk = 36
-    defaultConfig { applicationId = "com.xx.xraydbpocket"; minSdk = 26; targetSdk = 36; versionCode = 3; versionName = "1.2.0" }
+    defaultConfig { applicationId = "com.xx.xraydbpocket"; minSdk = 26; targetSdk = 36; versionCode = 4; versionName = "1.3.0" }
 
     signingConfigs {
         create("release") {
