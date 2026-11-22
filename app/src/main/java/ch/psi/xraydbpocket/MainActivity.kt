@@ -251,7 +251,6 @@ fun getElementState(z: Int): ElementState {
 fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
     val es by vm.elements.collectAsState()
     val isDark = MaterialTheme.colorScheme.background.red < 0.2f
-    val screenWidth = LocalConfiguration.current.screenWidthDp
 
     val (gasColor, liquidColor, solidColor) = if (isDark) {
         Triple(Color(0xFF142E3D), Color(0xFF163C2A), Color(0xFF1E222D))
@@ -259,31 +258,25 @@ fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
         Triple(Color(0xFFB2EBF2), Color(0xFFC8E6C9), Color(0xFFEFF4F4))
     }
 
-    val zFontSize = if (screenWidth < 360) 8.sp else 10.sp
-    val symbolFontSize = if (screenWidth < 360) 11.sp else 13.sp
-    val nameFontSize = if (screenWidth < 360) 7.5.sp else 9.5.sp
-    val cardPadding = if (screenWidth < 360) 1.dp else 2.dp
-    val gridSpacing = if (screenWidth < 360) 4.dp else 6.dp
-
-    Column(Modifier.padding(horizontal = if (screenWidth < 360) 6.dp else 12.dp, vertical = 2.dp)) {
+    Column(Modifier.padding(horizontal = 12.dp, vertical = 2.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Select an element", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, fontSize = if (screenWidth < 360) 18.sp else 22.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Select an element", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).background(gasColor, MaterialTheme.shapes.extraSmall))
-                Text("Gas", style = MaterialTheme.typography.labelSmall, fontSize = if (screenWidth < 360) 10.sp else 11.sp)
+                Text("Gas", style = MaterialTheme.typography.labelSmall)
                 Box(Modifier.size(10.dp).background(liquidColor, MaterialTheme.shapes.extraSmall))
-                Text("Liquid", style = MaterialTheme.typography.labelSmall, fontSize = if (screenWidth < 360) 10.sp else 11.sp)
+                Text("Liquid", style = MaterialTheme.typography.labelSmall)
             }
         }
         Spacer(Modifier.height(4.dp))
         LazyVerticalGrid(
-            columns = GridCells.Fixed(6),
-            verticalArrangement = Arrangement.spacedBy(gridSpacing),
-            horizontalArrangement = Arrangement.spacedBy(gridSpacing)
+            columns = GridCells.Fixed(5),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(es) { e ->
                 val state = getElementState(e.z)
@@ -297,18 +290,13 @@ fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = cardColor)
                 ) {
                     Column(
-                        Modifier.fillMaxSize().padding(cardPadding),
+                        Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(e.z.toString(), fontSize = zFontSize, maxLines = 1)
-                        Text(e.symbol, fontWeight = FontWeight.Bold, fontSize = symbolFontSize, maxLines = 1)
-                        Text(
-                            e.name.take(7),
-                            fontSize = nameFontSize,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Text(e.z.toString(), style = MaterialTheme.typography.labelSmall)
+                        Text(e.symbol, fontWeight = FontWeight.Bold)
+                        Text(e.name.take(7), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
