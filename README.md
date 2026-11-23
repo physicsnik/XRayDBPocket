@@ -1,6 +1,6 @@
 # XRayDB Pocket
 
-[![Version](https://img.shields.io/badge/version-1.4.0%20(5)-blue.svg)](app/build.gradle.kts)
+[![Version](https://img.shields.io/badge/version-1.5.0%20(6)-blue.svg)](app/build.gradle.kts)
 [![API](https://img.shields.io/badge/API-26%2B-brightgreen.svg)](app/build.gradle.kts)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -43,7 +43,7 @@ An offline-first Kotlin + Jetpack Compose Android reference application designed
   - Custom compound calculator ($\text{SiO}_2$, $\text{GaAs}$, $\text{Fe}_2\text{O}_3$, $\text{Al}_2\text{O}_3$, $\text{CeO}_2$, $\text{PbS}$, $\text{CdTe}$, $\text{InP}$, $\text{Si}_3\text{N}_4$, YBCO, Teflon, Polypropylene, GaN, ZnO, SiC, Perovskite, PZT) with accurate molar mass resolution and safety against NaN errors.
 
 - **Lab Note Markdown Export**:
-  - Copy formatted element summaries or spectral lines to clipboard for Electronic Lab Notebooks (ELN) and publication drafts.
+  - Copy formatted element summaries including fundamental physics parameters and spectral lines directly to clipboard for Electronic Lab Notebooks (ELN) and publication drafts.
 
 - **Modern Android Architecture & UX**:
   - Material 3 design, full edge-to-edge layout, system back-gesture integration (`BackHandler`) compatible with Samsung One UI & Android 14+.

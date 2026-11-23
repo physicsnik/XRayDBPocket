@@ -321,6 +321,20 @@ fun buildElementMarkdown(e: Element, rows: List<SpectralEntry>): String {
     sb.appendLine("- **Atomic Mass**: ${e.mass} u")
     sb.appendLine()
 
+    val wK = calculateFluorescenceYieldK(e.z)
+    val wL3 = calculateFluorescenceYieldL3(e.z)
+    val gK = calculateCoreHoleWidthK(e.z)
+    val gL3 = calculateCoreHoleWidthL3(e.z)
+    val kbKa = calculateKbKaRatio(e.z)
+
+    sb.appendLine("#### X-Ray Physics Parameters:")
+    if (wK > 0) sb.appendLine("- **K Fluorescence Yield (ω_K)**: %.3f (%.1f%%)".format(wK, wK * 100))
+    if (wL3 > 0) sb.appendLine("- **L₃ Fluorescence Yield (ω_L3)**: %.3f (%.1f%%)".format(wL3, wL3 * 100))
+    sb.appendLine("- **K Core-Hole Width (Γ_K)**: %.2f eV".format(gK))
+    sb.appendLine("- **L₃ Core-Hole Width (Γ_L3)**: %.2f eV".format(gL3))
+    sb.appendLine("- **Kβ/Kα Branching Ratio**: %.3f (Kα₂/Kα₁ ≈ 0.50)".format(kbKa))
+    sb.appendLine()
+
     val groups = rows.groupBy { it.category }
     groups.forEach { (cat, list) ->
         sb.appendLine("#### $cat:")
@@ -711,7 +725,10 @@ fun About() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("XRayDB Pocket", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("XRayDB Pocket", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("v1.5.0 (Build 6)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        }
         Text(
             "An offline pocket reference for X-ray binding energies, characteristic emission lines, Auger transitions, and gas-phase XPS spectra across all 118 elements.",
             style = MaterialTheme.typography.bodyMedium
