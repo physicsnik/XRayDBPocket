@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -332,6 +333,63 @@ fun buildElementMarkdown(e: Element, rows: List<SpectralEntry>): String {
     return sb.toString().trimEnd()
 }
 
+data class LabAnode(val name: String, val symbol: String, val energyEv: Double)
+
+val labAnodes = listOf(
+    LabAnode("Cu Kα₁", "Cu-Kα1", 8047.8),
+    LabAnode("Cu Kα₂", "Cu-Kα2", 8027.8),
+    LabAnode("Cu Kβ₁", "Cu-Kβ1", 8905.3),
+    LabAnode("Mo Kα₁", "Mo-Kα1", 17479.3),
+    LabAnode("Mo Kβ₁", "Mo-Kβ1", 19608.3),
+    LabAnode("Cr Kα₁", "Cr-Kα1", 5414.7),
+    LabAnode("Fe Kα₁", "Fe-Kα1", 6403.8),
+    LabAnode("Co Kα₁", "Co-Kα1", 6930.3),
+    LabAnode("Ag Kα₁", "Ag-Kα1", 22162.9),
+    LabAnode("W Lα₁", "W-Lα1", 8397.6),
+    LabAnode("Ga Kα₁", "Ga-Kα1", 9251.7)
+)
+
+data class MonoCrystal(val name: String, val dSpacingAngstrom: Double)
+
+val monoCrystals = listOf(
+    MonoCrystal("Si (111)", 3.1356),
+    MonoCrystal("Si (311)", 1.6375),
+    MonoCrystal("Si (220)", 1.9201),
+    MonoCrystal("Si (400)", 1.3577),
+    MonoCrystal("Ge (111)", 3.2664),
+    MonoCrystal("Ge (220)", 2.0002),
+    MonoCrystal("Diamond (111)", 2.0593),
+    MonoCrystal("LiF (200)", 2.0130)
+)
+
+fun calculateFluorescenceYieldK(z: Int): Double {
+    if (z < 5) return 0.0
+    val val1 = -0.015 + 0.0327 * z - 0.64e-6 * z.toDouble().pow(3)
+    val val4 = val1.pow(4)
+    return (val4 / (1.0 + val4)).coerceIn(0.0, 0.999)
+}
+
+fun calculateFluorescenceYieldL3(z: Int): Double {
+    if (z < 20) return 0.0
+    val z4 = z.toDouble().pow(4)
+    return (z4 / (z4 + 1.15e6)).coerceIn(0.0, 0.95)
+}
+
+fun calculateCoreHoleWidthK(z: Int): Double {
+    val zNorm = z.toDouble() / 10.0
+    return (0.018 * zNorm.pow(2.8) + 0.15).coerceAtLeast(0.05)
+}
+
+fun calculateCoreHoleWidthL3(z: Int): Double {
+    val zNorm = z.toDouble() / 10.0
+    return (0.008 * zNorm.pow(2.7) + 0.20).coerceAtLeast(0.05)
+}
+
+fun calculateKbKaRatio(z: Int): Double {
+    if (z < 11) return 0.13
+    return (0.13 + 0.0006 * z).coerceAtMost(0.22)
+}
+
 @Composable
 fun ElementScreen(e: Element, vm: Vm) {
     val context = LocalContext.current
@@ -359,6 +417,42 @@ fun ElementScreen(e: Element, vm: Vm) {
                 }
             }
             Text("Tap-free offline reference. Values retain category, environment and source.")
+        }
+        item {
+            val wK = calculateFluorescenceYieldK(e.z)
+            val wL3 = calculateFluorescenceYieldL3(e.z)
+            val gK = calculateCoreHoleWidthK(e.z)
+            val gL3 = calculateCoreHoleWidthL3(e.z)
+            val kbKa = calculateKbKaRatio(e.z)
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("X-Ray Physics Parameters", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("K Fluorescence Yield (ω_K):", style = MaterialTheme.typography.bodySmall)
+                        Text(if (wK > 0) "%.3f (%.1f%%)".format(wK, wK * 100) else "N/A (Z < 5)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("L₃ Fluorescence Yield (ω_L3):", style = MaterialTheme.typography.bodySmall)
+                        Text(if (wL3 > 0) "%.3f (%.1f%%)".format(wL3, wL3 * 100) else "N/A (Z < 20)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("K Core-Hole Width (Γ_K):", style = MaterialTheme.typography.bodySmall)
+                        Text("%.2f eV".format(gK), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("L₃ Core-Hole Width (Γ_L3):", style = MaterialTheme.typography.bodySmall)
+                        Text("%.2f eV".format(gL3), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Kβ / Kα Branching Ratio:", style = MaterialTheme.typography.bodySmall)
+                        Text("%.3f  ·  (Kα₂/Kα₁ ≈ 0.50)".format(kbKa), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
         }
         val groups = rows.groupBy { it.category }
         groups.forEach { (cat, list) ->
@@ -474,6 +568,21 @@ fun EnergySearch(vm: Vm) {
             OutlinedTextField(tol, { tol = it }, Modifier.weight(1f), label = { Text("Tolerance (eV)") })
         }
         Spacer(Modifier.height(4.dp))
+        Text("Quick Select Lab Target Anode:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+            items(labAnodes) { anode ->
+                Card(
+                    modifier = Modifier.clickable { s = "%.1f".format(anode.energyEv) },
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(
+                        "${anode.name} (${"%.1f".format(anode.energyEv)} eV)",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
         if (e != null) {
             Text("λ = ${"%.6g".format(1239.841984 / e)} nm")
             Text("ν = ${"%.6g".format(e * 2.417989242e14)} Hz")
@@ -672,6 +781,7 @@ fun AttenuationCalculator(vm: Vm) {
     var energyStr by remember { mutableStateOf("8047.8") }
     var thicknessStr by remember { mutableStateOf("250") }
     var selectedMaterial by remember { mutableStateOf("Be") }
+    var selectedCrystal by remember { mutableStateOf(monoCrystals[0]) }
 
     var formulaStr by remember { mutableStateOf("SiO2") }
     var compoundDensityStr by remember { mutableStateOf("2.20") }
@@ -696,7 +806,15 @@ fun AttenuationCalculator(vm: Vm) {
         MaterialInfo("BN", "Boron Nitride", 2.10, 65.0, 0.25),
         MaterialInfo("Water", "Water (H₂O)", 1.00, 95.0, 0.2),
         MaterialInfo("Air", "Air (STP)", 0.001205, 100.0, 0.2),
-        MaterialInfo("PMMA", "Lucite / PMMA", 1.18, 90.0, 0.25)
+        MaterialInfo("PMMA", "Lucite / PMMA", 1.18, 90.0, 0.25),
+        MaterialInfo("PTFE", "Teflon (PTFE)", 2.20, 100.0, 0.28),
+        MaterialInfo("Quartz", "Fused Silica", 2.20, 210.0, 0.35),
+        MaterialInfo("Pyrex", "Borosilicate Glass", 2.23, 200.0, 0.33),
+        MaterialInfo("Pt", "Platinum Coating", 21.45, 31000.0, 1.3),
+        MaterialInfo("Rh", "Rhodium Coating", 12.41, 6200.0, 0.95),
+        MaterialInfo("Ru", "Ruthenium Coating", 12.37, 6000.0, 0.92),
+        MaterialInfo("TiN", "Titanium Nitride", 5.22, 1250.0, 0.55),
+        MaterialInfo("SiC", "Silicon Carbide", 3.21, 310.0, 0.38)
     )
 
     val energyEv = energyStr.toDoubleOrNull() ?: 8047.8
@@ -790,6 +908,24 @@ fun AttenuationCalculator(vm: Vm) {
             }
         }
 
+        item {
+            Text("Quick Select Lab Target Anode:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 2.dp)) {
+                items(labAnodes) { anode ->
+                    Card(
+                        modifier = Modifier.clickable { energyStr = "%.1f".format(anode.energyEv) },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Text(
+                            "${anode.name} (${"%.1f".format(anode.energyEv)} eV)",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+        }
+
         if (isCompoundMode) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -875,6 +1011,59 @@ fun AttenuationCalculator(vm: Vm) {
         }
 
         item {
+            val lambdaAngstrom = 12398.41984 / energyEv
+            val sinTheta = lambdaAngstrom / (2.0 * selectedCrystal.dSpacingAngstrom)
+            val braggAngleDeg = if (sinTheta in 0.0..1.0) kotlin.math.asin(sinTheta) * (180.0 / Math.PI) else null
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Monochromator Crystal Bragg Angle (θ)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Photon λ = ${"%.4f".format(lambdaAngstrom)} Å at ${formatEnergy(energyEv)}", style = MaterialTheme.typography.bodyMedium)
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        monoCrystals.take(4).forEach { mc ->
+                            val sel = mc.name == selectedCrystal.name
+                            Card(
+                                modifier = Modifier.weight(1f).clickable { selectedCrystal = mc },
+                                colors = CardDefaults.cardColors(containerColor = if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                            ) {
+                                Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) {
+                                    Text(mc.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        monoCrystals.drop(4).forEach { mc ->
+                            val sel = mc.name == selectedCrystal.name
+                            Card(
+                                modifier = Modifier.weight(1f).clickable { selectedCrystal = mc },
+                                colors = CardDefaults.cardColors(containerColor = if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                            ) {
+                                Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) {
+                                    Text(mc.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    if (braggAngleDeg != null) {
+                        Text(
+                            "Bragg Angle θ = ${"%.3f".format(braggAngleDeg)}°  (2θ = ${"%.3f".format(braggAngleDeg * 2)}°)  ·  d = ${selectedCrystal.dSpacingAngstrom} Å",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Text("Beyond Bragg limit (λ > 2d for ${selectedCrystal.name})", color = Color.Red, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -932,5 +1121,12 @@ val compoundPresets = listOf(
     CompoundPreset("CdTe", "CdTe", 5.85),
     CompoundPreset("InP", "InP", 4.81),
     CompoundPreset("Si3N4", "Si₃N₄", 3.10),
-    CompoundPreset("Y1Ba2Cu3O7", "YBCO", 6.30)
+    CompoundPreset("Y1Ba2Cu3O7", "YBCO", 6.30),
+    CompoundPreset("C2F4", "Teflon", 2.20),
+    CompoundPreset("C3H6", "Polypropylene", 0.90),
+    CompoundPreset("GaN", "GaN", 6.15),
+    CompoundPreset("ZnO", "ZnO", 5.61),
+    CompoundPreset("SiC", "SiC", 3.21),
+    CompoundPreset("CH3NH3PbI3", "Perovskite", 4.16),
+    CompoundPreset("PbZr0.52Ti0.48O3", "PZT", 7.50)
 )

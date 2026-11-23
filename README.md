@@ -12,8 +12,13 @@ An offline-first Kotlin + Jetpack Compose Android reference application designed
 
 - **Optimized Periodic Table (118 Elements)**:
   - Clean 5-column responsive grid layout optimized for phone and tablet screens.
-  - Color-coded by state of matter at standard conditions (Gas, Liquid, Solid) with optimized contrast for both Light and Dark Hutch themes.
+  - Color-coded by state of matter at standard conditions (Gas, Liquid, Solid) with tuned contrast for Light and Dark Hutch themes.
   - Dynamic font & padding auto-scaling on small-screen devices to prevent text clipping.
+
+- **Fundamental X-Ray Physics Parameters & Yields**:
+  - **Krause / Bambynek Fluorescence Yields**: Calculated $K$-shell ($\omega_K$) and $L_3$-subshell ($\omega_{L3}$) radiative decay probabilities for all elements.
+  - **Natural Core-Hole Lifetime Widths**: $K$ and $L_3$ level Lorentzian FWHM broadenings ($\Gamma_K, \Gamma_{L3}$ in $\text{eV}$) for EXAFS/XANES fitting and XPS curve resolution.
+  - **Siegbahn Relative Intensity Ratios**: Relativistic spin-orbit couplings ($K\alpha_2 / K\alpha_1 \approx 0.50$) and element-dependent $K\beta / K\alpha$ branching ratios.
 
 - **Authoritative X-Ray Database (794+ Records)**:
   - **280** Solid-state core-level binding energies & XPS lines across 80 elements.
@@ -22,29 +27,27 @@ An offline-first Kotlin + Jetpack Compose Android reference application designed
   - **81** Gas-phase and vapor XPS binding energies for molecular gases and volatile solvents (Tartu / NIST).
   - **41** X-ray absorption edge threshold energies ($K, L_1, L_2, L_3$ edges) for XAS / EXAFS / XANES spectroscopy.
 
-- **Reverse Energy Lookup**:
-  - Search transitions and absorption edges by photon energy ($\text{eV}$ / $\text{keV}$) with tunable energy tolerance ($\pm \text{eV}$).
-  - Live conversions to photon wavelength ($\lambda$ in $\text{Å}$ / $\text{nm}$) and frequency ($\nu$ in $\text{Hz}$).
+- **Monochromator Crystal Bragg Angle Calculator**:
+  - Double-crystal monochromator (DCM) interplanar $d$-spacing reference: $\text{Si}(111)$, $\text{Si}(311)$, $\text{Si}(220)$, $\text{Si}(400)$, $\text{Ge}(111)$, $\text{Ge}(220)$, $\text{Diamond}(111)$, $\text{LiF}(200)$.
+  - Live Bragg angle solver: $\theta = \arcsin\left(\frac{\lambda}{2d}\right)$ with limits checking and $2\theta$ readout.
+
+- **Standard Lab X-Ray Target Anodes & Reverse Energy Lookup**:
+  - One-tap quick selector for common laboratory X-ray tube anode emission lines ($\text{Cu } K\alpha_1$, $\text{Cu } K\beta_1$, $\text{Mo } K\alpha_1$, $\text{Cr } K\alpha_1$, $\text{Fe } K\alpha_1$, $\text{Co } K\alpha_1$, $\text{Ag } K\alpha_1$, $\text{W } L\alpha_1$, $\text{Ga } K\alpha_1$).
+  - Search transitions and edges by photon energy ($\text{eV}$ / $\text{keV}$) with tunable tolerance ($\pm \text{eV}$), live wavelength ($\lambda$) and frequency ($\nu$) conversions.
 
 - **XRF / EDX Peak Identifier**:
-  - Input experimental peak energies to instantly identify matching elemental emission lines.
-  - One-tap navigation directly to element detail cards.
+  - Input experimental peak energies to instantly identify matching elemental emission lines with direct element navigation.
 
-- **X-Ray Attenuation & Transmission Calculator**:
-  - Beer-Lambert attenuation calculator supporting 18 pre-set synchrotron filter/window materials ($\text{Be}$, Diamond, Kapton, Mylar, $\text{Si}$, $\text{Ge}$, $\text{Al}$, $\text{Ti}$, $\text{Mo}$, $\text{Ag}$, $\text{Pd}$, $\text{Cu}$, $\text{Au}$, $\text{C}$, $\text{BN}$, $\text{Water}$, $\text{Air}$, $\text{PMMA}$).
-  - Custom compound calculator ($\text{SiO}_2$, $\text{GaAs}$, $\text{Fe}_2\text{O}_3$, $\text{Al}_2\text{O}_3$, $\text{CeO}_2$, $\text{PbS}$, $\text{CdTe}$, $\text{InP}$, $\text{Si}_3\text{N}_4$, $\text{YBCO}$) with accurate molar mass resolution and safety against NaN errors.
+- **Expanded X-Ray Attenuation & Transmission Calculator**:
+  - Beer-Lambert attenuation calculator supporting 26 pre-set filter/window/coating materials ($\text{Be}$, Diamond, Kapton, Mylar, $\text{Si}$, $\text{Ge}$, $\text{Al}$, $\text{Ti}$, $\text{Mo}$, $\text{Ag}$, $\text{Pd}$, $\text{Cu}$, $\text{Au}$, $\text{C}$, $\text{BN}$, Water, Air, PMMA, Teflon, Fused Silica, Pyrex, $\text{Pt}$, $\text{Rh}$, $\text{Ru}$, $\text{TiN}$, $\text{SiC}$).
+  - Custom compound calculator ($\text{SiO}_2$, $\text{GaAs}$, $\text{Fe}_2\text{O}_3$, $\text{Al}_2\text{O}_3$, $\text{CeO}_2$, $\text{PbS}$, $\text{CdTe}$, $\text{InP}$, $\text{Si}_3\text{N}_4$, YBCO, Teflon, Polypropylene, GaN, ZnO, SiC, Perovskite, PZT) with accurate molar mass resolution and safety against NaN errors.
 
 - **Lab Note Markdown Export**:
-  - Copy formatted element summaries or individual spectral lines to clipboard for Electronic Lab Notebooks (ELN) and publication drafts.
+  - Copy formatted element summaries or spectral lines to clipboard for Electronic Lab Notebooks (ELN) and publication drafts.
 
 - **Modern Android Architecture & UX**:
-  - Built with Jetpack Compose and Material 3 design guidelines.
-  - Full edge-to-edge display support and system back-gesture integration (`BackHandler`) compatible with Samsung One UI & Android 14+.
+  - Material 3 design, full edge-to-edge layout, system back-gesture integration (`BackHandler`) compatible with Samsung One UI & Android 14+.
   - Custom Bohr/Moseley atomic transition vector adaptive app icon.
-
-- **Privacy & Policy Compliant**:
-  - In-app links and included documentation for [Privacy Policy](PRIVACY_POLICY.md) (`privacy.html`) and [Terms of Service](TERMS_OF_SERVICE.md) (`terms.html`).
-  - Google AdMob integration with tuned R8 / ProGuard keep rules for release builds.
 
 ---
 
