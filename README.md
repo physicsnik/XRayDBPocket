@@ -10,10 +10,14 @@ An offline-first Kotlin + Jetpack Compose Android reference application designed
 
 ## 🌟 Key Features
 
-- **Optimized Periodic Table (118 Elements)**:
+- **Optimized Periodic Table & Beamline Favorites**:
   - Clean 5-column responsive grid layout optimized for phone and tablet screens.
   - Color-coded by state of matter at standard conditions (Gas, Liquid, Solid) with tuned contrast for Light and Dark Hutch themes.
+  - **Beamline Favorites ⭐**: One-tap star marking for frequently analyzed beamline elements with persistent storage and dedicated favorites filter mode.
   - Dynamic font & padding auto-scaling on small-screen devices to prevent text clipping.
+
+- **Global App Bar Search**:
+  - Live top bar search supporting element symbols ($\text{Fe}$), element names (*Iron*), atomic numbers ($Z=26$), spectral line notation ($K\alpha_1$), or photon energies ($6403.8 \text{ eV}$) with instant navigation.
 
 - **Fundamental X-Ray Physics Parameters & Yields**:
   - **Krause / Bambynek Fluorescence Yields**: Calculated $K$-shell ($\omega_K$) and $L_3$-subshell ($\omega_{L3}$) radiative decay probabilities for all elements.

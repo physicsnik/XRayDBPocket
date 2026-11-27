@@ -33,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.GridView
@@ -40,6 +41,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -98,6 +101,7 @@ class Vm(private val dao: XrayDao) : ViewModel() {
     fun entries(z: Int) = dao.entries(z)
     fun near(e: Double, t: Double) = dao.near(e, e - t, e + t)
     fun nearEmission(e: Double, t: Double) = dao.nearEmission(e, e - t, e + t)
+    fun search(q: String) = dao.search("%$q%")
 }
 
 class MainActivity : ComponentActivity() {
@@ -149,30 +153,186 @@ val DarkHutchColors = darkColorScheme(
 
 enum class Page { TABLE, ENERGY, XRF, ATTEN, ABOUT }
 
+fun getFavorites(context: Context): Set<Int> {
+    val prefs = context.getSharedPreferences("xray_favorites", Context.MODE_PRIVATE)
+    val set = prefs.getStringSet("fav_z", emptySet()) ?: emptySet()
+    return set.mapNotNull { it.toIntOrNull() }.toSet()
+}
+
+fun toggleFavorite(context: Context, z: Int): Set<Int> {
+    val prefs = context.getSharedPreferences("xray_favorites", Context.MODE_PRIVATE)
+    val current = getFavorites(context).toMutableSet()
+    if (current.contains(z)) {
+        current.remove(z)
+    } else {
+        current.add(z)
+    }
+    prefs.edit().putStringSet("fav_z", current.map { it.toString() }.toSet()).apply()
+    return current
+}
+
+@Composable
+fun GlobalSearchResultsOverlay(
+    query: String,
+    vm: Vm,
+    onSelectElement: (Element) -> Unit
+) {
+    val allElements by vm.elements.collectAsState()
+    val searchResults by vm.search(query).collectAsState(initial = emptyList())
+
+    val matchedElements = remember(query, allElements) {
+        val q = query.trim().lowercase()
+        allElements.filter { e ->
+            e.symbol.lowercase().contains(q) ||
+            e.name.lowercase().contains(q) ||
+            e.z.toString() == q
+        }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        LazyColumn(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (matchedElements.isNotEmpty()) {
+                item {
+                    Text("Elements (${matchedElements.size})", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+                items(matchedElements) { elem ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { onSelectElement(elem) },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            Modifier.padding(12.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("${elem.symbol} · ${elem.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                Text("Atomic Number Z = ${elem.z}  ·  Mass = ${elem.mass} u", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text("Z=${elem.z}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+
+            if (searchResults.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Database Spectral Entries (${searchResults.size})", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+                items(searchResults) { entry ->
+                    val elem = allElements.find { it.z == entry.z }
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            if (elem != null) onSelectElement(elem)
+                        },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("${elem?.symbol ?: "?"} (${elem?.name ?: ""}) · ${formatLabel(entry.label)}", fontWeight = FontWeight.Bold)
+                                Text(formatEnergy(entry.energyEv), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Text("${entry.category}  ·  ${entry.environment}", style = MaterialTheme.typography.bodySmall)
+                            Text(entry.source, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+
+            if (matchedElements.isEmpty() && searchResults.isEmpty()) {
+                item {
+                    Text("No matching elements or spectral lines found for \"$query\".", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(vm: Vm) {
+    val context = LocalContext.current
     var page by remember { mutableStateOf(Page.TABLE) }
     var selected by remember { mutableStateOf<Element?>(null) }
     var isDarkMode by remember { mutableStateOf(true) }
-    BackHandler(enabled = selected != null) {
-        selected = null
+
+    var favoritesSet by remember { mutableStateOf(getFavorites(context)) }
+    var showOnlyFavorites by remember { mutableStateOf(false) }
+
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = isSearchActive || selected != null) {
+        if (isSearchActive) {
+            isSearchActive = false
+            searchQuery = ""
+        } else {
+            selected = null
+        }
     }
+
     MaterialTheme(colorScheme = if (isDarkMode) DarkHutchColors else LightColors) {
         Column(Modifier.fillMaxSize()) {
             AdBannerBar()
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text(selected?.let { "${it.symbol} · ${it.name}" } ?: "XRayDB Pocket") },
+                        title = {
+                            if (isSearchActive) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = { Text("Search symbol, line, or energy...", style = MaterialTheme.typography.bodyMedium) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                                    trailingIcon = {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                            }
+                                        }
+                                    }
+                                )
+                            } else {
+                                Text(selected?.let { "${it.symbol} · ${it.name}" } ?: "XRayDB Pocket")
+                            }
+                        },
                         navigationIcon = {
-                            if (selected != null) {
+                            if (isSearchActive) {
+                                IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                                }
+                            } else if (selected != null) {
                                 IconButton(onClick = { selected = null }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                                 }
                             }
                         },
                         actions = {
+                            if (!isSearchActive) {
+                                IconButton(onClick = { isSearchActive = true }) {
+                                    Icon(Icons.Default.Search, contentDescription = "Global Search")
+                                }
+                            }
+                            if (selected != null) {
+                                val isFav = favoritesSet.contains(selected!!.z)
+                                IconButton(onClick = {
+                                    favoritesSet = toggleFavorite(context, selected!!.z)
+                                }) {
+                                    Icon(
+                                        imageVector = if (isFav) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = "Toggle Beamline Favorite",
+                                        tint = if (isFav) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
                             IconButton(onClick = { isDarkMode = !isDarkMode }) {
                                 Icon(
                                     imageVector = if (isDarkMode) Icons.Default.WbSunny else Icons.Default.DarkMode,
@@ -183,59 +343,75 @@ fun App(vm: Vm) {
                         }
                     )
                 },
-            bottomBar = {
-                if (selected == null) {
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = page == Page.TABLE,
-                            onClick = { page = Page.TABLE },
-                            icon = { Icon(Icons.Default.GridView, contentDescription = null) },
-                            label = { Text("Elements") }
-                        )
-                        NavigationBarItem(
-                            selected = page == Page.ENERGY,
-                            onClick = { page = Page.ENERGY },
-                            icon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            label = { Text("Energy") }
-                        )
-                        NavigationBarItem(
-                            selected = page == Page.XRF,
-                            onClick = { page = Page.XRF },
-                            icon = { Icon(Icons.Default.Science, contentDescription = null) },
-                            label = { Text("XRF ID") }
-                        )
-                        NavigationBarItem(
-                            selected = page == Page.ATTEN,
-                            onClick = { page = Page.ATTEN },
-                            icon = { Icon(Icons.Default.Layers, contentDescription = null) },
-                            label = { Text("Atten") }
-                        )
-                        NavigationBarItem(
-                            selected = page == Page.ABOUT,
-                            onClick = { page = Page.ABOUT },
-                            icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                            label = { Text("About") }
-                        )
+                bottomBar = {
+                    if (selected == null && !isSearchActive) {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = page == Page.TABLE,
+                                onClick = { page = Page.TABLE },
+                                icon = { Icon(Icons.Default.GridView, contentDescription = null) },
+                                label = { Text("Elements") }
+                            )
+                            NavigationBarItem(
+                                selected = page == Page.ENERGY,
+                                onClick = { page = Page.ENERGY },
+                                icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                label = { Text("Energy") }
+                            )
+                            NavigationBarItem(
+                                selected = page == Page.XRF,
+                                onClick = { page = Page.XRF },
+                                icon = { Icon(Icons.Default.Science, contentDescription = null) },
+                                label = { Text("XRF ID") }
+                            )
+                            NavigationBarItem(
+                                selected = page == Page.ATTEN,
+                                onClick = { page = Page.ATTEN },
+                                icon = { Icon(Icons.Default.Layers, contentDescription = null) },
+                                label = { Text("Atten") }
+                            )
+                            NavigationBarItem(
+                                selected = page == Page.ABOUT,
+                                onClick = { page = Page.ABOUT },
+                                icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                                label = { Text("About") }
+                            )
+                        }
                     }
                 }
-            }
-        ) { p ->
-            Box(Modifier.padding(p)) {
-                if (selected != null) {
-                    ElementScreen(selected!!, vm)
-                } else {
-                    when (page) {
-                        Page.TABLE -> PeriodicTable(vm) { selected = it }
-                        Page.ENERGY -> EnergySearch(vm)
-                        Page.XRF -> XrfPeakIdentifier(vm) { selected = it }
-                        Page.ATTEN -> AttenuationCalculator(vm)
-                        Page.ABOUT -> About()
+            ) { p ->
+                Box(Modifier.padding(p)) {
+                    if (isSearchActive && searchQuery.isNotBlank()) {
+                        GlobalSearchResultsOverlay(
+                            query = searchQuery,
+                            vm = vm,
+                            onSelectElement = { elem ->
+                                selected = elem
+                                isSearchActive = false
+                                searchQuery = ""
+                            }
+                        )
+                    } else if (selected != null) {
+                        ElementScreen(selected!!, vm)
+                    } else {
+                        when (page) {
+                            Page.TABLE -> PeriodicTable(
+                                vm = vm,
+                                favoritesSet = favoritesSet,
+                                showOnlyFavorites = showOnlyFavorites,
+                                onToggleShowOnlyFavorites = { showOnlyFavorites = !showOnlyFavorites },
+                                onPick = { selected = it }
+                            )
+                            Page.ENERGY -> EnergySearch(vm)
+                            Page.XRF -> XrfPeakIdentifier(vm) { selected = it }
+                            Page.ATTEN -> AttenuationCalculator(vm)
+                            Page.ABOUT -> About()
+                        }
                     }
                 }
             }
         }
     }
-}
 }
 
 enum class ElementState { GAS, LIQUID, SOLID }
@@ -249,9 +425,23 @@ fun getElementState(z: Int): ElementState {
 }
 
 @Composable
-fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
+fun PeriodicTable(
+    vm: Vm,
+    favoritesSet: Set<Int>,
+    showOnlyFavorites: Boolean,
+    onToggleShowOnlyFavorites: () -> Unit,
+    onPick: (Element) -> Unit
+) {
     val es by vm.elements.collectAsState()
     val isDark = MaterialTheme.colorScheme.background.red < 0.2f
+
+    val displayedElements = remember(es, favoritesSet, showOnlyFavorites) {
+        if (showOnlyFavorites) {
+            es.filter { favoritesSet.contains(it.z) }
+        } else {
+            es
+        }
+    }
 
     val (gasColor, liquidColor, solidColor) = if (isDark) {
         Triple(Color(0xFF142E3D), Color(0xFF163C2A), Color(0xFF1E222D))
@@ -265,39 +455,79 @@ fun PeriodicTable(vm: Vm, onPick: (Element) -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Select an element", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(if (showOnlyFavorites) "Beamline Favorites (${displayedElements.size})" else "Select an element", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).background(gasColor, MaterialTheme.shapes.extraSmall))
-                Text("Gas", style = MaterialTheme.typography.labelSmall)
-                Box(Modifier.size(10.dp).background(liquidColor, MaterialTheme.shapes.extraSmall))
-                Text("Liquid", style = MaterialTheme.typography.labelSmall)
+                Card(
+                    modifier = Modifier.clickable { onToggleShowOnlyFavorites() },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (showOnlyFavorites) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (showOnlyFavorites) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = "Favorites Filter",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (favoritesSet.isNotEmpty()) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text("Favorites (${favoritesSet.size})", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
         Spacer(Modifier.height(4.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            items(es) { e ->
-                val state = getElementState(e.z)
-                val cardColor = when (state) {
-                    ElementState.GAS -> gasColor
-                    ElementState.LIQUID -> liquidColor
-                    ElementState.SOLID -> solidColor
+        if (displayedElements.isEmpty() && showOnlyFavorites) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.StarBorder, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text("No Beamline Favorites Starred Yet", fontWeight = FontWeight.Bold)
+                    Text("Tap the star icon on any element detail page to mark elements you frequently analyze at your beamline.", style = MaterialTheme.typography.bodySmall)
                 }
-                Card(
-                    modifier = Modifier.aspectRatio(1f).clickable { onPick(e) },
-                    colors = CardDefaults.cardColors(containerColor = cardColor)
-                ) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(5),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(displayedElements) { e ->
+                    val state = getElementState(e.z)
+                    val cardColor = when (state) {
+                        ElementState.GAS -> gasColor
+                        ElementState.LIQUID -> liquidColor
+                        ElementState.SOLID -> solidColor
+                    }
+                    val isFav = favoritesSet.contains(e.z)
+                    Card(
+                        modifier = Modifier.aspectRatio(1f).clickable { onPick(e) },
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
                     ) {
-                        Text(e.z.toString(), style = MaterialTheme.typography.labelSmall)
-                        Text(e.symbol, fontWeight = FontWeight.Bold)
-                        Text(e.name.take(7), style = MaterialTheme.typography.labelSmall)
+                        Box(Modifier.fillMaxSize()) {
+                            if (isFav) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Starred",
+                                    tint = Color(0xFFFFD700),
+                                    modifier = Modifier.size(12.dp).align(Alignment.TopEnd).padding(top = 2.dp, end = 2.dp)
+                                )
+                            }
+                            Column(
+                                Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(e.z.toString(), style = MaterialTheme.typography.labelSmall)
+                                Text(e.symbol, fontWeight = FontWeight.Bold)
+                                Text(e.name.take(7), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
             }
