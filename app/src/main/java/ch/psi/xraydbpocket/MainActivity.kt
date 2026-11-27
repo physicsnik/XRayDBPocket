@@ -1328,7 +1328,7 @@ fun AttenuationCalculator(vm: Vm) {
 }
 
 fun elementMuRho(z: Int, energyKeV: Double): Double {
-    if (energyKeV <= 0.1) return 1000.0
+    if (energyKeV.isNaN() || energyKeV <= 0.1) return 1000.0
     val a = 0.012 * z.toDouble().pow(3.5)
     val b = 0.15 + 0.005 * z
     return a * energyKeV.pow(-3.2) + b
@@ -1337,21 +1337,48 @@ fun elementMuRho(z: Int, energyKeV: Double): Double {
 data class FormulaComponent(val element: Element, val count: Double)
 
 fun parseFormula(formula: String, elements: List<Element>): List<FormulaComponent>? {
-    val regex = Regex("([A-Z][a-z]?)([0-9]*\\.?[0-9]*)")
-    val matches = regex.findAll(formula.replace(" ", "")).toList()
-    if (matches.isEmpty()) return null
+    val clean = formula.replace(" ", "")
+    if (clean.isEmpty()) return null
 
-    val components = mutableListOf<FormulaComponent>()
     val elemMap = elements.associateBy { it.symbol }
+    val counts = mutableMapOf<Element, Double>()
+
+    val regex = Regex("([A-Z][a-z]?)([0-9]*\\.?[0-9]*)|(\\()|(\\))([0-9]*\\.?[0-9]*)")
+    val matches = regex.findAll(clean).toList()
+
+    var matchedLength = 0
+    val stack = mutableListOf<MutableMap<Element, Double>>()
+    stack.add(counts)
 
     for (m in matches) {
+        matchedLength += m.value.length
         val sym = m.groupValues[1]
         val countStr = m.groupValues[2]
-        val count = if (countStr.isEmpty()) 1.0 else countStr.toDoubleOrNull() ?: 1.0
-        val elem = elemMap[sym] ?: return null
-        components.add(FormulaComponent(elem, count))
+        val openParen = m.groupValues[3]
+        val closeParen = m.groupValues[4]
+        val parenMultiplierStr = m.groupValues[5]
+
+        if (sym.isNotEmpty()) {
+            val elem = elemMap[sym] ?: return null
+            val count = if (countStr.isEmpty()) 1.0 else countStr.toDoubleOrNull() ?: 1.0
+            val currentMap = stack.last()
+            currentMap[elem] = (currentMap[elem] ?: 0.0) + count
+        } else if (openParen.isNotEmpty()) {
+            stack.add(mutableMapOf())
+        } else if (closeParen.isNotEmpty()) {
+            if (stack.size <= 1) return null
+            val groupMap = stack.removeAt(stack.lastIndex)
+            val mult = if (parenMultiplierStr.isEmpty()) 1.0 else parenMultiplierStr.toDoubleOrNull() ?: 1.0
+            val targetMap = stack.last()
+            for ((e, c) in groupMap) {
+                targetMap[e] = (targetMap[e] ?: 0.0) + (c * mult)
+            }
+        }
     }
-    return components.ifEmpty { null }
+
+    if (matchedLength != clean.length || stack.size != 1) return null
+
+    return counts.map { FormulaComponent(it.key, it.value) }.ifEmpty { null }
 }
 
 data class MaterialInfo(val symbol: String, val name: String, val density: Double, val a: Double, val b: Double)
